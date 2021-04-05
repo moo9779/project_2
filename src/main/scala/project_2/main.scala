@@ -100,12 +100,35 @@ object main{
 
 
   def BJKST(x: RDD[String], width: Int, trials: Int) : Double = {
+    val h = Seq.fill(trials)(new hash_function([0, numBuckets_in - 1]))
+    def param0 = (accu1: Seq[Int], accu2: Seq[Int]) => Seq.range(0,trials).map(i => scala.math.min(accu1(i), accu2(i)))
+    def param1 = (accu1: BJKSTSketch, accu2: BJKSTSketch) => Seq.range(0,trials).map( i => accu1(i).merge(accu2(i)))
+    def param2 = (accu1: BJKSTSketch, s: String) => Seq.range(0,trials).map( i =>  scala.math.max(accu1(i), h(i).zeroes(h(i).hash(s))) )
+    def param3 (accu1: BJKSTSketch) {
+      while(accu1.BJKST_bucket_size >= width) {
+        accu1.z = accu1.z + 1
+       
+      }
+    }
+    val x3 = x.aggregate(Seq.fill(trials)(0))(param1, param0)
+    val x4 = x.aggregate(Seq.fill(trials)(0))(param3, param2)
+    val x5 = x.aggregate(Seq.fill(trials)(0))(x3,x5)
+    val ans = x5.map(z => z.BJKST_bucket_size*scala.math.pow(2, z)).sortWith(_ < _)( trials/2) 
 
+    return ans;
   }
 
 
   def Tug_of_War(x: RDD[String], width: Int, depth:Int) : Long = {
+    val h = Seq.fill(depth)four_universal_Radamacher_hash_function(0, width*depth)
 
+    def param0 = (accu1: Seq[Int], accu2: Seq[Int]) => Seq.range(0,width).map(i => scala.math.max(accu1(i), accu2(i)))
+    def param1 = (accu1: Seq[Int], s: String) => Seq.range(0,depth).map( i =>  scala.math.max(accu1(i), h(i).zeroes(h(i).hash(s))) )
+
+    val x3 = x.aggregate(Seq.fill(depth)(0))( param1, param0)
+    val ans = x3.map(z => scala.math.pow(z, 2)).sortWith(_ < _)( trials/2) /* Take the median of the trials */
+
+    return ans
   }
 
 
@@ -116,7 +139,8 @@ object main{
 
 
   def exact_F2(x: RDD[String]) : Long = {
-
+    val ans = x.map(z => (z, 1)).reduceByKey(_ + _).map(z => z._2*z._2).reduce(_ + _).toLong;
+    return ans
   }
 
 
